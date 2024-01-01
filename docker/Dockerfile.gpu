@@ -1,11 +1,13 @@
+# Use an official nvidia cuda runtime as a parent image
 FROM nvidia/cuda:11.2.2-cudnn8-runtime-ubuntu20.04
 
+# Set the argument for non-interactive installation
 ARG DEBIAN_FRONTEND=noninteractive
 
-# Remove any third-party apt sources to avoid issues with expiring keys.
+# Remove any third-party apt-get sources to avoid issues with expiring keys
 RUN rm -f /etc/apt/sources.list.d/*.list
 
-# Install some basic utilities.
+# Update the system and install basic utilities
 RUN apt-get update && apt-get install -y \
     curl \
     ca-certificates \
@@ -13,35 +15,31 @@ RUN apt-get update && apt-get install -y \
     git \
     bzip2 \
     libx11-6 \
+    software-properties-common \
+    python3-dev \
+    python-is-python3 \
+    portaudio19-dev \
+    ffmpeg \
+    wget \
+    python3-pip \
  && rm -rf /var/lib/apt/lists/*
 
-RUN apt update
+# Add the deadsnakes PPA to get the latest Python versions
+RUN add-apt-repository ppa:deadsnakes/ppa && apt-get update
 
-# install python
-RUN apt install software-properties-common -y && \
-    add-apt-repository ppa:deadsnakes/ppa && \
-    apt update
-
-RUN apt install python3-dev -y && \
-    apt install python-is-python3
-    
-
-# install pip
-RUN apt install python3-pip -y
-
-# Create a working directory.
+# Create a working directory
 RUN mkdir /app
 WORKDIR /app
 
-COPY setup.sh /app
+# Copy the requirements directory to the working directory
 COPY requirements/ /app
 
-RUN apt update --fix-missing
-RUN bash setup.sh
+# Install the Python dependencies
 RUN pip install -r server.txt
 
+# Copy the application files to the working directory
 COPY whisper_live /app/whisper_live
-
 COPY run_server.py /app
 
+# Run the application when the container launches
 CMD ["python", "run_server.py"]
